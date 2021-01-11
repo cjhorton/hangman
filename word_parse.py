@@ -47,6 +47,16 @@ def create_word_bank_file(words, path):
     with open(path, "w") as f:
       f.writelines(words)
 
+def create_word_indices(words, indices):
+    """Creates an indices dictionary from a words list; key = word length:value = line that length starts on"""
+    length = 0
+    line = 0
+    for word in words:
+        length = len(word)
+        if length not in words:
+            indices[length] = line
+        line += 1
+
 def main():
     #file = "/usr/share/dict/words"
     input_file = "test_words"
