@@ -57,6 +57,14 @@ def create_word_indices(words, indices):
             indices[length] = line
         line += 1
 
+def create_word_indices_file(indices, path):
+    """Creat the word bank indicies file that will be used to find words of a certain length"""
+    try:
+        with open(path, "w") as f:
+        f.write(str(indices))
+    except:
+        print("Unable to write to the file")
+
 def main():
     #file = "/usr/share/dict/words"
     input_file = "test_words"
@@ -65,6 +73,10 @@ def main():
     arrange_word_list(words)
     output_file = "hangman_word_bank"
     create_word_bank_file(words, output_file)
+    indicies = {}
+    create_word_indices(words, indices)
+    indicies_file = "hangman_word_bank_idx"
+    create_word_indices_file(indices, indices_file)
 
 if __name__ == "__main__":
   main()
