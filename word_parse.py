@@ -7,7 +7,6 @@ def parse_words_file(words_path, words):
     try:
       with open(words_path, "r") as f:
         #we want words that are 3 or more letters long
-        parsed_line = ""
         for line in f:
           parsed_line = parse_word_line(line)
           if word_is_valid(parsed_line):
@@ -49,11 +48,12 @@ def create_word_bank_file(words, path):
 
 def create_word_indices(words, indices):
     """Creates an indices dictionary from a words list; key = word length:value = line that length starts on"""
-    length = 0
-    line = 0
+    line = 1
     for word in words:
-        length = len(word)
-        if length not in words:
+        s_word = word.strip()
+        length = len(s_word)
+        if not length in indices:
+            #print(f"{s_word}:{length}:{line}")
             indices[length] = line
         line += 1
 
@@ -61,7 +61,8 @@ def create_word_indices_file(indices, path):
     """Create the word bank indicies file that will be used to find words of a certain length"""
     try:
         with open(path, "w") as f:
-            f.write(str(indices))
+            for length, line in indices.items():
+                f.write(f"{length},{line}" + "\n")
     except:
         print("Unable to write to the file")
 
