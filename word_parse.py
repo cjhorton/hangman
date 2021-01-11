@@ -43,8 +43,12 @@ def arrange_word_list(words):
 
 def create_word_bank_file(words, path):
     """Created the word bank file that will be used for the game"""
-    with open(path, "w") as f:
-      f.writelines(words)
+    try:
+        with open(path, "w") as f:
+            f.writelines(words)
+    except:
+        print("Unable to write to the file")
+
 
 def create_word_indices(words, indices):
     """Creates an indices dictionary from a words list; key = word length:value = line that length starts on"""
@@ -67,8 +71,8 @@ def create_word_indices_file(indices, path):
         print("Unable to write to the file")
 
 def main():
-    #file = "/usr/share/dict/words"
-    input_file = "test_words"
+    input_file = "/usr/share/dict/words"
+    #input_file = "test_words"
     words = []
     parse_words_file(input_file, words)
     arrange_word_list(words)
