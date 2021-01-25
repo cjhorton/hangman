@@ -13,7 +13,13 @@ class InputStatus(Enum):
     EMPTY = 2
     INVALID = 3
     EXIT = 4
-    DUPLICATE = 5
+
+class GuessStatus(Enum):
+    INCORRECT = 1
+    CORRECT = 2
+    DUPLICATE = 3
+    NONE = 4 #placeholder for an invalid, empty, or exit guess
+
 
 def print_round(gallows, round):
     clear_screen()
@@ -92,20 +98,79 @@ def run(config):
             config["mode"] = value
             print("You selected the {} mode.".format(get_mode_name(value)))
             brackets = populate_difficulty_brackets(config["word_bank_idx_path"])
-            print(get_random_word_in_difficulty(config["word_bank_path"], brackets, "medium"))
-            gallows = create_gallows()
-            while config["rounds_left"] > 0:
-                config["rounds_left"] -= 1
-                play_round()
+            while config["current_round"] <= config{"number_rounds"]:
+                play_round(config, brackets)
+            run = False
 
 def determine_round_word(config, brackets):
+    return "pony"
+
+
+
+def play_round(config, brackets):
+    print("Starting round {}!".format(config["current_round"])
+    word = determine_round_word(config, brackets)
+    initialize_word_in_config(config, word)
+    gallows = create_gallows()
+    while config["current_strikes"] <= config["max_strikes"]:
+        print(gallows[config["current_strikes"]])
+        print("Word:  " + " ".join(config["display_letters"])
+        print("Incorrect: " + "".join(config["wrong_letters"])
+        print()
+        letter = input("Please guess another letter or enter number 0 to exit: ")
+        (input_status, guess_status, value) = process_round_input(user_input, word, guessed):
+        if input_status == InputStatus.EXIT:
+            config["current_round"] = 1000 #to exit while loop
+            print(value)
+            return
+        elif input_status == InputStatus.EMPTY or input_status == InputStatus.INVALID:
+            print(value)
+            continue
+        else:
+            if guess_status == GuessStatus.DUPLICATE:
+                print("You have already guessed that letter.  Please try again"
+                continue
+            elif guess_status == GuessStatus.INCORRECT:
+                print("Sorry, that letter is not in the word.")
+                update_config_after_guess(config, value)
+            else:
+                print("You guessed correctly!")
+                update_config_after_guess(config, value)
+    update_config_after_round(config)
+
+def update_config_after_round(config):
+    """Updates the config dictinoary after a round"""
+    config["previous_words"].append(config["current_word"])
+    config["current_word"] = " "
+    config["current_strikes"] = 0
+    config["display_letters"].clear()
+    config["wrong_letters"].clear()
+    config["current_round"] += 1
+    config["correct_letters"].clear()
+    config["digits_in_word"] = 0,
+    config["digits_guessed"] = 0,
+
+
+def update_config_after_guess(config, guess):
+    if guess == "-1": #initialize
+        pass
+
+def generate_display_letters(config):
+    """re-generates the display letters based on the current word and correctly guessed letters"""
+    config["display_letters"].clear()
+    for letter in config["current_word"]:
+        if letter in config["correct_letters"]:
+            config["display_letters"].append(letter)
+        else:
+            config["display_letters"].append("_")
+
+def initialize_word_in_config(config, word):
+    config["current_word"] = word
+    config["digits_in_word"] = len(config["current_word"])
+    generate_display_letters(config)
+
+def print_display_word(word):
     pass
-
-
-
-def play_round(config):
-    pass 
-
 
 def print_mode_info():
     print("Progressive Mode (P): Difficulty starts at easy and progresses to hard - 3 rounds.")
@@ -115,7 +180,7 @@ def print_mode_info():
     print()
 
 def get_mode_name(mode):
-    mode_names = {"p": "Progressive", "r": "Random", "e": "Easy", "m": "Medium", "h": "Hard", "rounds_left": 3}
+    mode_names = {"p": "Progressive", "r": "Random", "e": "Easy", "m": "Medium", "h": "Hard"}
     if mode in mode_names:
         return mode_names[mode]
     else:
@@ -135,12 +200,23 @@ def process_mode_selection(user_input):
         return status, value
 
 def process_round_input(user_input, word, guessed):
-    """Processes the user letter guess input for the round"""
-    (status, value) = process_raw_input(user_input)
-    if status != InputStatus.VALID:
-        return status, value
+    """Processes the user letter guess input for the round.  Returns tuple(x3) 2 enum codes and either an error string or the guessed letter"""
+    (input_status, value) = process_raw_input(user_input)
+    if input_status != InputStatus.VALID:
+        if input_status == InputStatus.EXIT:
+            return input_status, GuessStatus.NONE, "Exiting..."
+        elif input_status == InputStatus.EMPTY:
+            return input_status, GuessStatus.NONE, "Nothing was entered."
+        elif input_status == InputStatus.INVALID:
+            return input_status, GuessStatus.NONE, "Invalid entry."
     else:
-        return status, value
+        if value in config["current_word"]:
+            if value not in config["correct_letters"] and value not in config["wrong_letters"]:
+                return input_status, GuessStatus.CORRECT, value
+            else:
+                return input_status, GuessStatus.DUPLICATE, value
+        else:
+            return input_status, GuessStatus.INCORRECT, value
 
 def process_raw_input(user_input):
     """Processes the raw user input and returns a tuple (status, letter)"""
@@ -156,7 +232,23 @@ def process_raw_input(user_input):
             return InputStatus.INVALID, ""
 
 def main():
-    config = {"word_bank_path": "hangman_word_bank", "word_bank_idx_path": "hangman_word_bank_idx", "print_mode": True}
+    config = {"word_bank_path": "hangman_word_bank",
+        "word_bank_idx_path": "hangman_word_bank_idx",
+        "print_mode": True,
+        "previous_words": [],
+        "current_word": " ", #space indicates this is the first round
+        "number_rounds": 3,
+        "current_round": 1,
+        "mode": "r", #This will get updated in run()
+        "wrong_letters": [],
+        "display_letters" : [],
+        "max_strikes": 5,
+        "current_strikes": 0,
+        "correct_letters": [],
+        "digits_in_word": 0,
+        "digits_guessed": 0,
+
+    }
     try:
         found = word_bank_files_exist(config["word_bank_path"], config["word_bank_idx_path"] )
         if not found:
@@ -165,6 +257,10 @@ def main():
         print("Could not locate either the hangman_word_bank or hangman_word_bank_idx files")
         return
     run(config)
+
+
+
+
 
 def clear_screen():
     print("\n" * 50)
