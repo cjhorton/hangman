@@ -1,11 +1,19 @@
 import linecache
 import random
+from enum import Enum
 from os import path
 from gallows import create_gallows
 
 class WordBankError(Exception):
     """Raised when either the word bank or word bank idx files aren't found"""
     pass
+
+class InputStatus(Enum):
+    VALID = 1
+    EMPTY = 2
+    INVALID = 3
+    EXIT = 4
+    DUPLICATE = 5
 
 def print_round(gallows, round):
     clear_screen()
@@ -71,23 +79,84 @@ def run(config):
     print(get_random_word_in_difficulty(config["word_bank_path"], brackets, "medium"))
     gallows = create_gallows()
     while run:
-        letter = input("Enter a letter or 1 to exit:")
-        if len(letter) == 0:
-            print("Nothing was entered.  Please try again.")
+        if config["print_mode"]:
+            print_mode_info()
+            config["print_mode"] = False
+        mode = input("Please enter a selection: ")
+        (status, value) = process_mode_selection(mode)
+        if status != InputStatus.VALID:
+            print(value)
+            if status == InputStatus.EXIT:
+                run = False #Will exit the loop
         else:
-            letter = letter[0] #just grab first element of whatever was entered
-            if letter ==  "1": #exit
-                run = False
-                continue
-            else:
-                if letter.isalpha():
-                    print(f"You entered the letter {letter}")
-                else:
-                    print(f"That was an invalid entry.")
+            config["mode"] = value
+            print("You selected the {} mode.".format(get_mode_name(value)))
+            brackets = populate_difficulty_brackets(config["word_bank_idx_path"])
+            print(get_random_word_in_difficulty(config["word_bank_path"], brackets, "medium"))
+            gallows = create_gallows()
+            while config["rounds_left"] > 0:
+                config["rounds_left"] -= 1
+                play_round()
 
+def determine_round_word(config, brackets):
+    pass
+
+
+
+def play_round(config):
+    pass 
+
+
+def print_mode_info():
+    print("Progressive Mode (P): Difficulty starts at easy and progresses to hard - 3 rounds.")
+    print("Random Mode (R): Difficulty randomly chosen each round - 3 rounds.")
+    print("Select Difficulty Mode: Easy(E), Medium(M), Hard(H) - 3 rounds.")
+    print("Number 0 to exit.")
+    print()
+
+def get_mode_name(mode):
+    mode_names = {"p": "Progressive", "r": "Random", "e": "Easy", "m": "Medium", "h": "Hard", "rounds_left": 3}
+    if mode in mode_names:
+        return mode_names[mode]
+    else:
+        return "unknown"
+
+def process_mode_selection(user_input):
+    """Processes the user input when at the mode selection step"""
+    valid_modes = "premh"
+    (status, value) = process_raw_input(user_input)
+    if status == InputStatus.EXIT:
+        return status, "Exiting..."
+    elif status == InputStatus.EMPTY:
+        return status, "Nothing was entered.  Please enter a valid mode - (P),(R),(E),(M),(H) or number 0 to exit"
+    elif status == InputStatus.INVALID or value not in valid_modes:
+        return status, "Invalid entry.  Please enter a valid mode - (P),(R),(E),(M),(H) or number 0 to exit"
+    else:
+        return status, value
+
+def process_round_input(user_input, word, guessed):
+    """Processes the user letter guess input for the round"""
+    (status, value) = process_raw_input(user_input)
+    if status != InputStatus.VALID:
+        return status, value
+    else:
+        return status, value
+
+def process_raw_input(user_input):
+    """Processes the raw user input and returns a tuple (status, letter)"""
+    if len(user_input) == 0:
+        return InputStatus.EMPTY, ""
+    else:
+        letter = user_input[0]
+        if letter == "0": #exit
+            return InputStatus.EXIT, ""
+        elif letter.isalpha():
+            return InputStatus.VALID, letter.lower()
+        else:
+            return InputStatus.INVALID, ""
 
 def main():
-    config = {"word_bank_path": "hangman_word_bank", "word_bank_idx_path": "hangman_word_bank_idx"}
+    config = {"word_bank_path": "hangman_word_bank", "word_bank_idx_path": "hangman_word_bank_idx", "print_mode": True}
     try:
         found = word_bank_files_exist(config["word_bank_path"], config["word_bank_idx_path"] )
         if not found:

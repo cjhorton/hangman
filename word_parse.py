@@ -3,14 +3,13 @@
 import re
 
 def create_names(names_path, names):
-    """Creates the names set that will be checked against before asdding a word to the word bank """
+    """Creates the names (SET) that will be checked against before asdding a word to the word bank """
     try:
       with open(names_path, "r") as f:
-        #we want names that are 3 or more letters long
         for line in f:
           parsed_line = parse_word_line(line)
-          if word_is_valid(parsed_line):
-            names.add(process_word(parsed_line)) #names is a set
+          #if word_is_valid(parsed_line):
+          names.add(process_word(parsed_line)) #names is a set
     except IOError:
       print("Unable to locate the names file.  Please check the path and try again.")
     except EOFError:
