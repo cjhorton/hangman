@@ -27,7 +27,7 @@ def print_gallow(gallows, idx):
 
 def print_round(config, gallows):
     clear_screen()
-    lost = 0 if config["current_round"] == 1 else config["current_round"] - config["rounds_won"]
+    lost = 0 if config["current_round"] == 1 else config["current_round"] - config["rounds_won"] - 1
     print("Round {} of {} - {} mode".format(config["current_round"], config["number_rounds"], get_mode_name(config["mode"])))
     print()
     print("Wins: {}  Losses: {}".format(config["rounds_won"], lost))
