@@ -19,6 +19,8 @@ The following are optional and are not needed to play:
 -names/names_sorted_uniqie.txt
 
 Todo:
+-update the formatting of this readme
 -include more last names in the word filtering
+-adjust difficulty
 
 
