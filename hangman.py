@@ -22,9 +22,21 @@ class GuessStatus(Enum):
 
 
 def print_gallow(gallows, idx):
-    clear_screen()
     for i in gallows[idx]:
         print(i)
+
+def print_round(config, gallows):
+    clear_screen()
+    lost = 0 if config["current_round"] == 1 else config["current_round"] - config["rounds_won"]
+    print("Round {} of {} - {} mode".format(config["current_round"], config["number_rounds"], get_mode_name(config["mode"])))
+    print()
+    print("Wins: {}  Losses: {}".format(config["rounds_won"], lost))
+    print()
+    print_gallow(gallows, config["current_strikes"])
+    print("Word:  " + " ".join(config["display_letters"]))
+    print()
+    print("Incorrect: " + "".join(config["wrong_letters"]))
+    print()
 
 def word_bank_files_exist(bank_path, idx_path):
     return  path.exists(bank_path) and path.exists(idx_path)
@@ -72,7 +84,7 @@ def get_random_word_in_difficulty(word_bank_path, brackets, difficulty):
         line = random.randint(brackets[difficulty][1], brackets[difficulty][2])
     else: #no difficulty - use entire range 
         line = random.randint(brackets["easy"][1], brackets["hard"][2])
-    print(f"line is: {line}")
+    #print(f"line is: {line}")
     return get_word_on_line(line, word_bank_path)
 
 def cleanup():
@@ -82,8 +94,6 @@ def run(config):
     """Game loop"""
     run = True
     brackets = populate_difficulty_brackets(config["word_bank_idx_path"])
-    print(brackets)
-    #print(get_random_word_in_difficulty(config["word_bank_path"], brackets, "medium"))
     gallows = create_gallows()
     while run:
         if config["print_mode"]:
@@ -95,6 +105,7 @@ def run(config):
             print(value)
             if status == InputStatus.EXIT:
                 run = False #Will exit the loop
+                config["exit_requested"] = True
         else:
             config["mode"] = value
             print("You selected the {} mode.".format(get_mode_name(value)))
@@ -102,11 +113,34 @@ def run(config):
             while config["current_round"] <= config["number_rounds"]:
                 play_round(config, brackets)
             run = False
+            if not config["exit_requested"]:
+                if config["rounds_won"] >= 2:
+                    print()
+                    print("Congratulations, you won the game!!!  You won {} of {} rounds!!!".format(config["rounds_won"], config["number_rounds"]))
+                    print()
+                else:
+                    print()
+                    print("You lost - {} of {} rounds.  Better luck next time.".format(config["number_rounds"] - config["rounds_won"], config["number_rounds"]))
+                    print()
+    cleanup()
 
 def determine_round_word(config, brackets):
-    word = get_random_word_in_difficulty(config["word_bank_path"], brackets, get_mode_name(config["mode"]))
+    difficulty = "e"
+    if config["mode"] == "e" or config["mode"] == "m" or config["mode"] == "h":
+        difficulty = get_mode_name(config["mode"])
+    elif config["mode"] == "p":
+        if config["current_round"] == 1:
+            difficulty = "easy"
+        elif config["current_round"] == 2:
+            difficulty = "medium"
+        else:
+            difficulty = "hard"
+    else:
+        difficulty = "random"
+    
+    word = get_random_word_in_difficulty(config["word_bank_path"], brackets, difficulty)
     while word in config["previous_words"]:
-        word = get_random_word_in_difficulty(config["word_bank_path"], brackets, get_mode_name(config["mode"]))
+        word = get_random_word_in_difficulty(config["word_bank_path"], brackets, difficulty)
     return word
 
 def play_round(config, brackets):
@@ -115,17 +149,14 @@ def play_round(config, brackets):
     initialize_word_in_config(config, word)
     gallows = create_gallows()
     while config["current_strikes"] <= config["max_strikes"]:
-        print_gallow(gallows, config["current_strikes"])
-        print("Word:  " + " ".join(config["display_letters"]))
-        print()
-        print("Incorrect: " + "".join(config["wrong_letters"]))
-        print()
+        print_round(config, gallows)
         wait_for_input = True #Prevents re-drawing of the gallow each pass
         while wait_for_input:
             user_input = input("Please guess another letter or enter number 0 to exit: ")
             (input_status, guess_status, value) = process_round_input(config, user_input)
             if input_status == InputStatus.EXIT:
                 config["current_round"] = 1000 #to exit this method and inner while loop in run()
+                config["exit_requested"] = True
                 print(value)
                 return
             elif input_status == InputStatus.EMPTY or input_status == InputStatus.INVALID:
@@ -141,9 +172,13 @@ def play_round(config, brackets):
                     print("You guessed correctly!")
                     update_config_after_guess(config, value)
                     if config["digits_guessed"] == config["digits_in_word"]:
-                        print("Congratulations, you guessed the word!")
+                        config["rounds_won"] += 1
                         config["current_strikes"] = 10 #get out of the upper while loop in this function
                     wait_for_input = False
+    if config["digits_guessed"] == config["digits_in_word"]:
+        print("Congratulations, you guessed the word {}!!!".format(config["current_word"]))
+    else:
+        print("You failed to guess the word {}".format(config["current_word"]))
     update_config_after_round(config)
 
 def update_config_after_round(config):
@@ -155,8 +190,8 @@ def update_config_after_round(config):
     config["wrong_letters"].clear()
     config["current_round"] += 1
     config["correct_letters"].clear()
-    config["digits_in_word"] = 0,
-    config["digits_guessed"] = 0,
+    config["digits_in_word"] = 0
+    config["digits_guessed"] = 0
 
 
 def update_config_after_guess(config, guess):
@@ -166,7 +201,8 @@ def update_config_after_guess(config, guess):
         config["wrong_letters"].append(guess)
     else:
         config["correct_letters"].append(guess)
-        config["digits_guessed"] += 1
+        occurences = config["current_word"].count(guess)
+        config["digits_guessed"] += occurences
         generate_display_letters(config)
 
 def generate_display_letters(config):
@@ -187,6 +223,7 @@ def print_display_word(word):
     pass
 
 def print_mode_info():
+    clear_screen()
     print("Progressive Mode (P): Difficulty starts at easy and progresses to hard - 3 rounds.")
     print("Random Mode (R): Difficulty randomly chosen each round - 3 rounds.")
     print("Select Difficulty Mode: Easy(E), Medium(M), Hard(H) - 3 rounds.")
@@ -252,6 +289,7 @@ def main():
         "current_word": " ", #space indicates this is the first round
         "number_rounds": 3,
         "current_round": 1,
+        "rounds_won": 0,
         "mode": "e", #This will get updated in run()
         "wrong_letters": [],
         "display_letters" : [],
@@ -260,8 +298,9 @@ def main():
         "correct_letters": [],
         "digits_in_word": 0,
         "digits_guessed": 0,
-
+        "exit_requested": False,
     }
+
     try:
         found = word_bank_files_exist(config["word_bank_path"], config["word_bank_idx_path"] )
         if not found:
@@ -271,12 +310,9 @@ def main():
         return
     run(config)
 
-
-
-
-
 def clear_screen():
-    print("\n" * 50)
+    """Prints blank lines to separate each guess - mimics a screen refresh"""
+    print("\n" * 10)
 
 if __name__ == "__main__":
     main()
