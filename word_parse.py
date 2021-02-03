@@ -17,14 +17,14 @@ def create_names(names_path, names):
     print("All done parsing the names file.")
 
 
-def parse_words_file(words_path, words, names):
+def parse_words_file(words_path, words, f_names, l_names):
     """Parses the /usr/share/dict/words file into words usable by the hangman program """
     try:
       with open(words_path, "r") as f:
         #we want words that are 3 or more letters long
         for line in f:
           parsed_line = parse_word_line(line)
-          if word_is_valid(parsed_line) and not word_is_name(parsed_line, names):
+          if word_is_valid(parsed_line) and not word_is_name(parsed_line, f_names) and not word_is_name(parsed_line, l_names):
             #add new line char at the end since will be using writelines()
             words.append(process_word(parsed_line) + "\n")
 
@@ -94,14 +94,20 @@ def create_word_indices_file(indices, path, stats):
 
 def main():
     #Create the names set
-    input_file = "names/names_sorted_unique.txt"
-    names = set()
-    create_names(input_file, names)
+    first_file = "names/first_names.txt"
+    f_names = set()
+    create_names(first_file, f_names)
+
+    #Create the last names set
+    last_file = "names/last_names.txt"
+    l_names = set()
+    create_names(last_file, l_names)
+
 
     #Parse the words file and create a list of valid words
     input_file = "/usr/share/dict/words"
     words = []
-    parse_words_file(input_file, words, names)
+    parse_words_file(input_file, words, f_names, l_names)
 
     #Sort the words by alpha and length
     arrange_word_list(words)
